@@ -32,6 +32,10 @@ io.on("connection", (socket) => {
     console.log(`User joined room: ${roomId}`);
   });
 
+  socket.on("code-change", (data) => {
+  socket.to(data.roomId).emit("receive-code", data.code);
+});
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
