@@ -19,26 +19,29 @@ io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   socket.on("join-room", (roomId) => {
-    console.log("Join-room event received");
-    console.log(roomId);
+  console.log("Join-room event received");
+  console.log(roomId);
 
-    socket.join(roomId);
+  socket.join(roomId);
 
-    socket.to(roomId).emit(
-      "user-connected",
-      "A new user joined the room"
-    );
+  socket.to(roomId).emit(
+    "user-connected",
+    "A new user joined the room"
+  );
 
-    console.log(`User joined room: ${roomId}`);
-  });
+  const users = io.sockets.adapter.rooms.get(roomId)?.size || 0;
+
+  io.to(roomId).emit("user-count", users);
+
+  console.log(`User joined room: ${roomId}`);
+});
 
   socket.on("code-change", (data) => {
   socket.to(data.roomId).emit("receive-code", data.code);
 });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
+socket.on("disconnect", () => {
+  console.log("User disconnected:", socket.id);
+});
 });
 
 server.listen(5000, () => {
