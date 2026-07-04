@@ -2,10 +2,12 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const { exec } = require("child_process");
 
 const app = express();
 
 app.use(cors());
+app.use(express.json());
 
 const server = http.createServer(app);
 
@@ -13,6 +15,18 @@ const io = new Server(server, {
   cors: {
     origin: "*"
   }
+});
+
+app.post("/run", (req, res) => {
+  const { code, language } = req.body;
+
+  console.log("Run Request Received");
+  console.log("Language:", language);
+  console.log("Code:", code);
+
+  res.json({
+    output: "Backend received your code successfully!"
+  });
 });
 
 io.on("connection", (socket) => {

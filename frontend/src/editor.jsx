@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import socket from "./socket";
 import MonacoEditor from "@monaco-editor/react";
+import axios from "axios";
 
 function EditorPage()  {
   const { roomId } = useParams();
@@ -11,6 +12,9 @@ function EditorPage()  {
   const [users, setUsers] = useState(0);
   const [language, setLanguage] = useState("javascript");
   const [theme, setTheme] = useState("vs-dark");
+  const [output, setOutput] = useState("");
+  const [loading, setLoading] = useState(false);
+
 
   function downloadCode() {
   const extensions = {
@@ -36,6 +40,27 @@ function EditorPage()  {
   element.click();
   document.body.removeChild(element);
 }   
+
+async function runCode() {
+  setLoading(true);
+setOutput("Running...");
+  try {
+    const response = await axios.post("http://localhost:5000/run", {
+      code,
+      language,
+    });
+
+    console.log(response.data);
+
+    setOutput(response.data.output);
+  } catch (error) {
+    setOutput("Error connecting to backend");
+    console.error(error);
+  }
+  finally {
+  setLoading(false);
+}
+}
 
   useEffect(() => {
     socket.emit("join-room", roomId);
@@ -114,6 +139,23 @@ function EditorPage()  {
   💾 Download
 </button>
 
+<h3>Output</h3>
+
+<div
+  style={{
+    backgroundColor: "#1e1e1e",
+    color: "#00ff00",
+    padding: "15px",
+    borderRadius: "8px",
+    minHeight: "100px",
+    marginTop: "20px",
+    textAlign: "left",
+    whiteSpace: "pre-wrap",
+  }}
+>
+  {output || "Output will appear here..."}
+</div>
+
       <button
         onClick={() => navigate("/")}
         style={{ marginLeft: "10px" }}
@@ -124,6 +166,20 @@ function EditorPage()  {
   </div>
 
       <h2>Code Editor</h2>
+<button
+  onClick={runCode}
+  style={{
+    backgroundColor: "#22c55e",
+    color: "white",
+    padding: "10px 20px",
+    border: "none",
+    borderRadius: "8px",
+    marginBottom: "15px",
+    cursor: "pointer",
+  }}
+>
+  ▶ Run Code
+</button>
 
       <div style={{ marginBottom: "15px" }}>
   <label
