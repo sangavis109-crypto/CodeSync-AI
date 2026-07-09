@@ -181,6 +181,12 @@ setOutput("Running...");
   ▶ Run Code
 </button>
 
+<button
+  onClick={() => setOutput("")}
+>
+  Clear Output
+</button>
+
       <div style={{ marginBottom: "15px" }}>
   <label
     style={{
