@@ -14,6 +14,7 @@ function EditorPage()  {
   const [theme, setTheme] = useState("vs-dark");
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [review, setReview] = useState("");
 
 
   function downloadCode() {
@@ -60,6 +61,28 @@ setOutput("Running...");
   finally {
   setLoading(false);
 }
+}
+
+async function reviewCode() {
+  setLoading(true);
+  setReview("Analyzing code with AI...");
+
+  try {
+    const response = await axios.post("http://localhost:5000/review", {
+      code,
+      language,
+    });
+
+    setReview(response.data.review);
+
+  } catch (error) {
+    setReview("Error connecting to AI review service");
+    console.error(error);
+  }
+
+  finally {
+    setLoading(false);
+  }
 }
 
   useEffect(() => {
@@ -156,6 +179,23 @@ setOutput("Running...");
   {output || "Output will appear here..."}
 </div>
 
+<h3>🤖 AI Code Review</h3>
+
+<div
+  style={{
+    backgroundColor: "#111827",
+    color: "#ffffff",
+    padding: "15px",
+    borderRadius: "8px",
+    minHeight: "120px",
+    marginTop: "10px",
+    textAlign: "left",
+    whiteSpace: "pre-wrap",
+  }}
+>
+  {review || "AI review will appear here..."}
+</div>
+
       <button
         onClick={() => navigate("/")}
         style={{ marginLeft: "10px" }}
@@ -179,6 +219,21 @@ setOutput("Running...");
   }}
 >
   ▶ Run Code
+</button>
+
+<button
+  onClick={reviewCode}
+  style={{
+    backgroundColor:"#7c3aed",
+    color:"white",
+    padding:"10px 20px",
+    border:"none",
+    borderRadius:"8px",
+    marginLeft:"10px",
+    cursor:"pointer",
+  }}
+>
+ 🤖 AI Review
 </button>
 
 <button

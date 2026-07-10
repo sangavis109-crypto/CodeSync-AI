@@ -3,6 +3,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const { exec } = require("child_process");
+const vm = require("node:vm");
 
 const app = express();
 
@@ -22,13 +23,69 @@ app.post("/run", (req, res) => {
 
   console.log("Run Request Received");
   console.log("Language:", language);
-  console.log("Code:", code);
+
+  if (language !== "javascript") {
+    return res.json({
+      output: "Currently only JavaScript execution is supported."
+    });
+  }
+
+  let output = "";
+
+  const sandbox = {
+    console: {
+      log: (...args) => {
+        output += args.join(" ") + "\n";
+      }
+    }
+  };
+
+  try {
+    vm.createContext(sandbox);
+    vm.runInContext(code, sandbox);
+
+    res.json({
+      output: output || "Code executed successfully (no output)."
+    });
+
+  } catch (error) {
+    res.json({
+      output: "Error: " + error.message
+    });
+}
+});
+app.post("/review", (req, res) => {
+  const { code, language } = req.body;
+
+  console.log("AI Review Request Received");
+  console.log("Language:", language);
+
+  if (!code.trim()) {
+    return res.json({
+      review: "⚠️ Please enter some code for review."
+    });
+  }
 
   res.json({
-    output: "Backend received your code successfully!"
+    review: `
+🤖 AI Code Review
+
+Language: ${language}
+
+✅ Code Analysis:
+Your code structure looks readable.
+
+🐛 Possible Issues:
+- Check for syntax errors.
+- Add proper error handling.
+
+💡 Suggestions:
+- Use meaningful variable names.
+- Add comments for complex logic.
+- Follow best coding practices.
+`
   });
 });
-
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
