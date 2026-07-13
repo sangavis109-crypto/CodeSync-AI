@@ -1,9 +1,15 @@
+require("dotenv").config();
+
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { exec } = require("child_process");
 const vm = require("node:vm");
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 
 const app = express();
 
@@ -54,7 +60,7 @@ app.post("/run", (req, res) => {
     });
 }
 });
-app.post("/review", (req, res) => {
+app.post("/review", async (req, res) => {
   const { code, language } = req.body;
 
   console.log("AI Review Request Received");
@@ -66,25 +72,70 @@ app.post("/review", (req, res) => {
     });
   }
 
-  res.json({
-    review: `
+  try {
+    const model = genAI.getGenerativeModel({
+  model: "gemini-2.0-flash",
+});
+
+    const prompt = `
+You are a senior software engineer.
+
+Review this ${language} code.
+
+Find:
+1. Bugs
+2. Security issues
+3. Performance problems
+4. Improvements
+5. Best practices
+
+Code:
+
+${code}
+`;
+
+    const result = await model.generateContent(prompt);
+
+    const response = result.response;
+
+    res.json({
+      review: response.text()
+    });
+
+  } catch (error) {
+  console.log("Gemini Error:", error.message);
+
+  const fallbackReview = `
 🤖 AI Code Review
 
-Language: ${language}
-
 ✅ Code Analysis:
-Your code structure looks readable.
+Your code structure looks readable and follows basic programming practices.
 
 🐛 Possible Issues:
-- Check for syntax errors.
+- Check syntax errors before execution.
 - Add proper error handling.
+- Avoid repeating duplicate code.
+- Validate user inputs.
 
-💡 Suggestions:
+🔒 Security Suggestions:
+- Never expose API keys.
+- Validate incoming requests.
+- Keep sensitive information inside environment variables.
+
+💡 Improvements:
 - Use meaningful variable names.
 - Add comments for complex logic.
-- Follow best coding practices.
-`
+- Follow clean coding practices.
+- Optimize code performance.
+
+⚡ Note:
+AI service is temporarily unavailable. Showing automated review suggestions.
+`;
+
+  res.json({
+    review: fallbackReview
   });
+}
 });
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
