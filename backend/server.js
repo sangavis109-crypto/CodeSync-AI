@@ -4,11 +4,14 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { exec } = require("child_process");
 const vm = require("node:vm");
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const Groq = require("groq-sdk");
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 
 const app = express();
@@ -73,69 +76,78 @@ app.post("/review", async (req, res) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash",
-});
 
-    const prompt = `
-You are a senior software engineer.
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
 
-Review this ${language} code.
-
-Find:
-1. Bugs
-2. Security issues
-3. Performance problems
-4. Improvements
-5. Best practices
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a senior software engineer. Review the given code and find bugs, security issues, performance problems and improvements."
+        },
+        {
+          role: "user",
+          content: `
+Language: ${language}
 
 Code:
-
 ${code}
-`;
 
-    const result = await model.generateContent(prompt);
-
-    const response = result.response;
-
-    res.json({
-      review: response.text()
+Give a clear code review with:
+1. Bugs
+2. Security issues
+3. Performance improvements
+4. Best practices
+`
+        }
+      ]
     });
 
-  } catch (error) {
-  console.log("Gemini Error:", error.message);
 
-  const fallbackReview = `
+    const review = response.choices[0].message.content;
+
+
+    res.json({
+      review: review
+    });
+
+
+  } catch (error) {
+
+    console.log("Groq Error:", error.message);
+
+
+    const fallbackReview = `
 🤖 AI Code Review
 
 ✅ Code Analysis:
-Your code structure looks readable and follows basic programming practices.
+Your code structure looks readable.
 
 🐛 Possible Issues:
-- Check syntax errors before execution.
+- Check syntax errors.
 - Add proper error handling.
-- Avoid repeating duplicate code.
-- Validate user inputs.
+- Avoid duplicate code.
 
-🔒 Security Suggestions:
-- Never expose API keys.
-- Validate incoming requests.
-- Keep sensitive information inside environment variables.
+🔒 Security:
+- Keep API keys hidden.
+- Validate user inputs.
 
 💡 Improvements:
 - Use meaningful variable names.
-- Add comments for complex logic.
+- Add comments.
 - Follow clean coding practices.
-- Optimize code performance.
 
 ⚡ Note:
-AI service is temporarily unavailable. Showing automated review suggestions.
+AI service unavailable. Showing fallback review.
 `;
 
-  res.json({
-    review: fallbackReview
-  });
-}
+
+    res.json({
+      review: fallbackReview
+    });
+
+  }
 });
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
